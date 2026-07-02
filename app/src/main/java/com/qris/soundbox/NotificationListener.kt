@@ -22,10 +22,59 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     private val db by lazy { AppDatabase.getDatabase(this) }
     private val serviceScope = CoroutineScope(Dispatchers.IO)
 
+    private val NOTIFICATION_ID = 9911
+    private val CHANNEL_ID = "QrisScannerChannel"
+
     override fun onCreate() {
         super.onCreate()
         tts = TextToSpeech(this, this)
         Log.d(TAG, "Service Created, initializing TTS")
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        Log.d(TAG, "Listener Connected, starting Foreground Service")
+        startForegroundServiceNotification()
+    }
+
+    private fun startForegroundServiceNotification() {
+        val channelName = "Pemindai Transaksi QRIS"
+        val channelDescription = "Menjaga sistem pemindai suara pembayaran tetap aktif di latar belakang"
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val channel = android.app.NotificationChannel(
+                CHANNEL_ID,
+                channelName,
+                android.app.NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = channelDescription
+            }
+            val manager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+
+        val pendingIntent = android.app.PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("AJIPUTRA-PROJECT")
+            .setContentText("Pemindai Suara Pembayaran QRIS Aktif")
+            .setSmallIcon(R.drawable.ic_app_logo)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setCategory(androidx.core.app.NotificationCompat.CATEGORY_SERVICE)
+
+        val notification = builder.build()
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     override fun onInit(status: Int) {
