@@ -11,7 +11,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.qris.soundbox.R
 
-class KeepAliveService : Service() {
+class AudioSyncWorker : Service() {
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -62,7 +62,7 @@ class KeepAliveService : Service() {
         const val CHANNEL_ID = "KeepAliveServiceChannel"
         
         fun start(context: Context) {
-            val intent = Intent(context, KeepAliveService::class.java)
+            val intent = Intent(context, AudioSyncWorker::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)
             } else {

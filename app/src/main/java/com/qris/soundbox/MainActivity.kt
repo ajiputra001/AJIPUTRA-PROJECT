@@ -73,9 +73,9 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Start Foreground Service to keep app alive
+        // Start background service
         try {
-            com.qris.soundbox.service.KeepAliveService.start(this)
+            com.qris.soundbox.service.AudioSyncWorker.start(this)
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "Failed to start KeepAliveService: ${e.message}")
         }
@@ -162,7 +162,7 @@ fun isNotificationServiceEnabled(context: Context): Boolean {
 fun reconnectNotificationService(context: Context) {
     try {
         val pm = context.packageManager
-        val cn = android.content.ComponentName(context, NotificationListener::class.java)
+        val cn = android.content.ComponentName(context, AudioPlaybackService::class.java)
         pm.setComponentEnabledSetting(cn, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED, android.content.pm.PackageManager.DONT_KILL_APP)
         pm.setComponentEnabledSetting(cn, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED, android.content.pm.PackageManager.DONT_KILL_APP)
     } catch (e: Exception) {

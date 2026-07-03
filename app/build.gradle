@@ -27,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.voicenotf.app"
+        applicationId "com.audiosync.app"
         minSdk 24
         targetSdk 34
         versionCode 1
