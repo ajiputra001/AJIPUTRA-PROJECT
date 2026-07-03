@@ -4,6 +4,19 @@ plugins {
     id 'com.google.devtools.ksp'
 }
 
+def getVersionNameFromGit() {
+    try {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'describe', '--tags', '--abbrev=0'
+            standardOutput = stdout
+        }
+        return stdout.toString().trim().replace("v", "")
+    } catch (Exception e) {
+        return "1.0.0"
+    }
+}
+
 android {
     namespace 'com.qris.soundbox'
     compileSdk 34
@@ -18,7 +31,7 @@ android {
         minSdk 24
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName getVersionNameFromGit()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
