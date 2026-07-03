@@ -109,15 +109,54 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         serviceScope.launch {
             val rules = db.ruleDao().getRulesForPackage(packageName)
             if (rules.isEmpty()) {
-                if (isTargetApp(packageName)) {
-                    saveTransaction(
-                        appName = getAppNameFromPackage(packageName),
-                        packageName = packageName,
-                        amount = 0.0,
-                        payerName = "Tidak Teridentifikasi",
-                        rawText = rawMessage,
-                        isParsed = false
-                    )
+                // Smart Detection Logic
+                val lowerText = fullContentText.lowercase()
+                val isPaymentKeyword = lowerText.contains("transfer") || 
+                                       lowerText.contains("pembayaran") || 
+                                       lowerText.contains("masuk") || 
+                                       lowerText.contains("berhasil") || 
+                                       lowerText.contains("terima") ||
+                                       lowerText.contains("bayar") ||
+                                       isTargetApp(packageName)
+
+                if (isPaymentKeyword) {
+                    val smartAmountPattern = Pattern.compile("(?i)rp\\s*([\\d\\.,]+)")
+                    val smartMatcher = smartAmountPattern.matcher(fullContentText)
+                    
+                    if (smartMatcher.find()) {
+                        val rawAmount = smartMatcher.group(1) ?: "0"
+                        val parsedAmount = parseAmount(rawAmount)
+                        
+                        val payerName = "Pelanggan (Auto)"
+                        val speakText = "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah"
+                        
+                        speakOut(speakText)
+
+                        val tx = saveTransaction(
+                            appName = getAppNameFromPackage(packageName),
+                            packageName = packageName,
+                            amount = parsedAmount,
+                            payerName = payerName,
+                            rawText = rawMessage,
+                            isParsed = true
+                        )
+
+                        val prefs = getSharedPreferences("qris_prefs", android.content.Context.MODE_PRIVATE)
+                        val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+                        if (webhookUrl.isNotEmpty()) {
+                            sendWebhook(webhookUrl, tx)
+                        }
+                        Log.d(TAG, "Smart Detection matched: $packageName, Amount: $parsedAmount")
+                    } else if (isTargetApp(packageName)) {
+                        saveTransaction(
+                            appName = getAppNameFromPackage(packageName),
+                            packageName = packageName,
+                            amount = 0.0,
+                            payerName = "Tidak Teridentifikasi",
+                            rawText = rawMessage,
+                            isParsed = false
+                        )
+                    }
                 }
                 return@launch
             }
@@ -177,13 +216,19 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     }
 
     private fun getAppNameFromPackage(packageName: String): String {
-        return when {
-            packageName.contains("gobiz") -> "GoBiz"
-            packageName.contains("shopee") -> "Shopee Partner"
-            packageName.contains("bca") -> "BCA Merchant"
-            packageName.contains("dana") -> "DANA Bisnis"
-            packageName.contains("ovo") -> "OVO Merchant"
-            else -> "Aplikasi Lain"
+        return try {
+            val pm = packageManager
+            val info = pm.getApplicationInfo(packageName, android.content.pm.PackageManager.GET_META_DATA)
+            pm.getApplicationLabel(info).toString()
+        } catch (e: Exception) {
+            when {
+                packageName.contains("gobiz") -> "GoBiz"
+                packageName.contains("shopee") -> "Shopee Partner"
+                packageName.contains("bca") -> "BCA Merchant"
+                packageName.contains("dana") -> "DANA Bisnis"
+                packageName.contains("ovo") -> "OVO Merchant"
+                else -> packageName
+            }
         }
     }
 

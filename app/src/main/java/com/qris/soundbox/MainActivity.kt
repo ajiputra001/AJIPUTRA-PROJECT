@@ -150,60 +150,7 @@ fun isNotificationServiceEnabled(context: Context): Boolean {
     return false
 }
 
-// In-App Update Configuration
-const val UPDATE_JSON_URL = "https://raw.githubusercontent.com/ajiputra001/AJIPUTRA-PROJECT/main/version.json"
-
-data class UpdateInfo(
-    val hasUpdate: Boolean,
-    val versionName: String,
-    val changelog: String,
-    val apkUrl: String
-)
-
-fun getCurrentVersionCode(context: Context): Long {
-    return try {
-        val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            pInfo.longVersionCode
-        } else {
-            @Suppress("DEPRECATION")
-            pInfo.versionCode.toLong()
-        }
-    } catch (e: Exception) {
-        1L
-    }
-}
-
-fun checkForUpdates(context: Context, onResult: (UpdateInfo) -> Unit) {
-    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-        try {
-            val url = java.net.URL(UPDATE_JSON_URL)
-            val urlConnection = url.openConnection() as java.net.HttpURLConnection
-            urlConnection.requestMethod = "GET"
-            urlConnection.connectTimeout = 5000
-            urlConnection.readTimeout = 5000
-            
-            val responseCode = urlConnection.responseCode
-            if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
-                val response = urlConnection.inputStream.bufferedReader().use { it.readText() }
-                val json = org.json.JSONObject(response)
-                val serverVersionCode = json.getLong("versionCode")
-                val serverVersionName = json.getString("versionName")
-                val apkUrl = json.getString("apkUrl")
-                val changelog = json.getString("changelog")
-                
-                val currentVersion = getCurrentVersionCode(context)
-                if (serverVersionCode > currentVersion) {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        onResult(UpdateInfo(true, serverVersionName, changelog, apkUrl))
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-}
+// Deprecated JSON checking, we use AppUpdater now inline in Compose
 
 // ViewModel implementation
 class QrisViewModel(private val db: AppDatabase) : ViewModel() {
@@ -273,11 +220,20 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
     // Auto-update permission state
     var isPermissionGranted by remember { mutableStateOf(isNotificationServiceEnabled(context)) }
     
+    // In-App Update states
+    data class UpdateInfo(val hasUpdate: Boolean, val versionName: String, val changelog: String, val apkUrl: String)
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var appUpdater by remember { mutableStateOf<com.qris.soundbox.updater.AppUpdater?>(null) }
     
     LaunchedEffect(Unit) {
-        checkForUpdates(context) { info ->
-            updateInfo = info
+        val updater = com.qris.soundbox.updater.AppUpdater(context, "ajiputra001", "AJIPUTRA-PROJECT")
+        appUpdater = updater
+        val release = updater.checkForUpdates()
+        if (release != null) {
+            val apkAsset = release.assets.find { it.name.endsWith(".apk") }
+            if (apkAsset != null) {
+                updateInfo = UpdateInfo(true, release.tagName.replace("v", ""), release.body, apkAsset.downloadUrl)
+            }
         }
     }
     
@@ -296,8 +252,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
             confirmButton = {
                 Button(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateInfo?.apkUrl))
-                        context.startActivity(intent)
+                        appUpdater?.downloadAndInstallUpdate(updateInfo?.apkUrl ?: "", "QrisSoundbox_update.apk")
                         updateInfo = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentPurple)
