@@ -27,6 +27,9 @@ jobs:
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
+      - name: Generate Debug Keystore (via assembleDebug)
+        run: ./gradlew assembleDebug
+
       - name: Build Release APK
         run: ./gradlew assembleRelease
 

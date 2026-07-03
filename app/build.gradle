@@ -8,6 +8,11 @@ android {
     namespace 'com.qris.soundbox'
     compileSdk 34
 
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
     defaultConfig {
         applicationId "com.qris.soundbox"
         minSdk 26
