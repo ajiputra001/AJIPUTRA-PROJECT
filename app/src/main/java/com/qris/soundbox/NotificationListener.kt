@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.regex.Pattern
 
-class AudioPlaybackService : NotificationListenerService(), TextToSpeech.OnInitListener {
+class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitListener {
     private val TAG = "QrisNotificationListener"
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
@@ -42,7 +42,7 @@ class AudioPlaybackService : NotificationListenerService(), TextToSpeech.OnInitL
         Log.d(TAG, "Listener Disconnected, requesting rebind")
         try {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                requestRebind(android.content.ComponentName(this, AudioPlaybackService::class.java))
+                requestRebind(android.content.ComponentName(this, NotificationListener::class.java))
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error requesting rebind: ${e.message}")
