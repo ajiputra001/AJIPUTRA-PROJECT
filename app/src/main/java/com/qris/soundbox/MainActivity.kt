@@ -1358,7 +1358,6 @@ fun StatusRow(title: String, subtitle: String, status: Boolean, onClick: () -> U
                 fontSize = 12.sp
             )
         }
-        }
     }
 }
 
