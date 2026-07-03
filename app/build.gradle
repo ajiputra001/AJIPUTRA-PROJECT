@@ -39,18 +39,9 @@ android {
         }
     }
 
-    signingConfigs {
-        release {
-            storeFile file("release.keystore")
-            storePassword "123456"
-            keyAlias "qriskey"
-            keyPassword "123456"
-        }
-    }
-
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
