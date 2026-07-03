@@ -37,6 +37,18 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         startForegroundServiceNotification()
     }
 
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        Log.d(TAG, "Listener Disconnected, requesting rebind")
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                requestRebind(android.content.ComponentName(this, NotificationListener::class.java))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error requesting rebind: ${e.message}")
+        }
+    }
+
     private fun startForegroundServiceNotification() {
         val channelName = "Pemindai Transaksi QRIS"
         val channelDescription = "Menjaga sistem pemindai suara pembayaran tetap aktif di latar belakang"
@@ -61,7 +73,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         )
 
         val builder = androidx.core.app.NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("AJIPUTRA-PROJECT")
+            .setContentTitle("Voice-Notf")
             .setContentText("Pemindai Suara Pembayaran QRIS Aktif")
             .setSmallIcon(R.drawable.ic_app_logo)
             .setContentIntent(pendingIntent)

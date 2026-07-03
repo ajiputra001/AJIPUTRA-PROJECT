@@ -57,7 +57,7 @@ class AppUpdater(private val context: Context, private val owner: String, privat
 
     fun downloadAndInstallUpdate(apkUrl: String, fileName: String) {
         val request = DownloadManager.Request(Uri.parse(apkUrl))
-            .setTitle("Downloading QRIS Soundbox Update")
+            .setTitle("Downloading Voice-Notf Update")
             .setDescription("Mengunduh versi terbaru...")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)

@@ -158,6 +158,17 @@ fun isNotificationServiceEnabled(context: Context): Boolean {
     return false
 }
 
+fun reconnectNotificationService(context: Context) {
+    try {
+        val pm = context.packageManager
+        val cn = android.content.ComponentName(context, NotificationListener::class.java)
+        pm.setComponentEnabledSetting(cn, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED, android.content.pm.PackageManager.DONT_KILL_APP)
+        pm.setComponentEnabledSetting(cn, android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED, android.content.pm.PackageManager.DONT_KILL_APP)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
 // Deprecated JSON checking, we use AppUpdater now inline in Compose
 
 // ViewModel implementation
@@ -234,7 +245,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
     var appUpdater by remember { mutableStateOf<com.qris.soundbox.updater.AppUpdater?>(null) }
     
     LaunchedEffect(Unit) {
-        val updater = com.qris.soundbox.updater.AppUpdater(context, "ajiputra001", "AJIPUTRA-PROJECT")
+        val updater = com.qris.soundbox.updater.AppUpdater(context, "ajiputra001", "Voice-Notf")
         appUpdater = updater
         val release = updater.checkForUpdates()
         if (release != null) {
@@ -251,7 +262,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
             title = { Text("Pembaruan Tersedia") },
             text = {
                 Column {
-                    Text("Versi baru aplikasi AJIPUTRA-PROJECT (v${updateInfo?.versionName}) telah dirilis.", fontWeight = FontWeight.Bold)
+                    Text("Versi baru aplikasi Voice-Notf (v${updateInfo?.versionName}) telah dirilis.", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text("Perubahan:", color = TextGray, fontSize = 12.sp)
                     Text(updateInfo?.changelog ?: "", fontSize = 13.sp, color = TextWhite)
@@ -260,7 +271,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
             confirmButton = {
                 Button(
                     onClick = {
-                        appUpdater?.downloadAndInstallUpdate(updateInfo?.apkUrl ?: "", "QrisSoundbox_update.apk")
+                        appUpdater?.downloadAndInstallUpdate(updateInfo?.apkUrl ?: "", "VoiceNotf_update.apk")
                         updateInfo = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentPurple)
@@ -282,6 +293,9 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 isPermissionGranted = isNotificationServiceEnabled(context)
+                if (isPermissionGranted) {
+                    reconnectNotificationService(context)
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -303,7 +317,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "AJIPUTRA-PROJECT",
+                            text = "Voice-Notf",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = TextWhite
@@ -324,7 +338,8 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
                     Triple("Dashboard", Icons.Default.Dashboard, 0),
                     Triple("Aturan", Icons.Default.Rule, 1),
                     Triple("Sandbox", Icons.Default.PlayArrow, 2),
-                    Triple("Pengaturan", Icons.Default.Settings, 3)
+                    Triple("Pengaturan", Icons.Default.Settings, 3),
+                    Triple("Tentang", Icons.Default.Info, 4)
                 )
                 items.forEach { (label, icon, index) ->
                     NavigationBarItem(
@@ -355,6 +370,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
                 1 -> RulesScreen(viewModel)
                 2 -> SandboxScreen(viewModel, onSpeak)
                 3 -> SettingsScreen(viewModel, isPermissionGranted, context)
+                4 -> AboutScreen()
             }
         }
     }
@@ -1341,6 +1357,152 @@ fun StatusRow(title: String, subtitle: String, status: Boolean, onClick: () -> U
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp
             )
+        }
+        }
+    }
+}
+
+@Composable
+fun AboutScreen() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(AccentPurple, AccentPink)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.VolumeUp,
+                        contentDescription = "Logo",
+                        tint = Color.White,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Voice-Notf",
+                        color = Color.White,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Membantu UMKM berkembang dengan teknologi",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Dengan menggunakan teknologi yang tepat, kita dapat membantu UMKM untuk berkembang dengan lebih efektif dan efisien, sehingga mereka dapat meningkatkan kualitas produk dan layanan mereka, meningkatkan daya saing, dan memperluas pangsa pasar mereka.",
+                        color = TextWhite,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Visibility, contentDescription = "Visi", tint = AccentPurple)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Visi", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AccentPurple)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Menjadi platform terdepan dalam pemberdayaan UMKM di Indonesia melalui solusi teknologi yang inovatif dan terpercaya dalam layanan pengisian pulsa dan pembayaran tagihan.",
+                        color = TextWhite,
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Flag, contentDescription = "Misi", tint = AccentPink)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Misi", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AccentPink)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val missions = listOf(
+                        "Memberikan pelayanan yang terbaik dengan kualitas dan kecepatan yang tinggi kepada konsumen.",
+                        "Meningkatkan aksesibilitas layanan pembayaran tagihan untuk UMKM di seluruh Indonesia.",
+                        "Menyediakan solusi teknologi yang inovatif dan mudah digunakan untuk memudahkan UMKM dalam menjalankan bisnis mereka.",
+                        "Meningkatkan keterampilan dan pengetahuan UMKM dalam mengelola bisnis mereka melalui program pelatihan dan pendampingan.",
+                        "Menjalin kemitraan strategis dengan pihak-pihak terkait untuk memperluas jangkauan layanan Voice-Notf dan mendukung pertumbuhan UMKM di Indonesia."
+                    )
+                    missions.forEachIndexed { index, misi ->
+                        Row(modifier = Modifier.padding(bottom = 8.dp)) {
+                            Text("${index + 1}.", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(misi, color = TextWhite, fontSize = 13.sp, lineHeight = 20.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Developer", color = TextGray, fontSize = 12.sp)
+                        Text("Ajiputra-tech", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Builder", color = TextGray, fontSize = 12.sp)
+                        Text("Agung maulana", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+            }
+        }
+        
+        item {
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

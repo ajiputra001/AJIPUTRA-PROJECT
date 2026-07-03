@@ -24,7 +24,7 @@ class KeepAliveService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("QRIS Soundbox Aktif")
+            .setContentTitle("Voice-Notf Aktif")
             .setContentText("Aplikasi berjalan di latar belakang untuk memantau pembayaran.")
             .setSmallIcon(R.drawable.ic_app_logo)
             .setPriority(NotificationCompat.PRIORITY_MIN)
