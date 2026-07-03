@@ -31,7 +31,11 @@ class KeepAliveService : Service() {
             .build()
 
         // ID must not be 0
-        startForeground(101, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(101, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(101, notification)
+        }
         
         // Memastikan sistem selalu mencoba menghidupkan kembali service ini jika dimatikan paksa
         return START_STICKY
