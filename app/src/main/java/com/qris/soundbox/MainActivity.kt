@@ -71,6 +71,14 @@ class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Start Foreground Service to keep app alive
+        try {
+            com.qris.soundbox.service.KeepAliveService.start(this)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to start KeepAliveService: ${e.message}")
+        }
+        
         tts = TextToSpeech(this, this)
 
         val db = AppDatabase.getDatabase(this)
@@ -465,6 +473,13 @@ fun DashboardScreen(viewModel: QrisViewModel, isPermissionGranted: Boolean, cont
                                 "Aplikasi tidak bisa membaca pembayaran QRIS. Ketuk di sini untuk menyalakannya.",
                                 fontSize = 12.sp,
                                 color = Color(0xFFFCA5A5)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Khusus Android 13+: Jika setelan tidak bisa dibuka (Restricted Settings), buka Info Aplikasi ini di Pengaturan HP -> tekan 3 titik di pojok kanan atas -> pilih 'Izinkan Pengaturan Terbatas' (Allow Restricted Settings).",
+                                fontSize = 10.sp,
+                                color = Color(0xFFFFD1D1),
+                                lineHeight = 14.sp
                             )
                         }
                         IconButton(onClick = {
