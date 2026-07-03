@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
@@ -21,11 +21,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
       - name: Generate Debug Keystore (via assembleDebug)
-        run: .\gradlew.bat assembleDebug
+        run: ./gradlew assembleDebug
 
       - name: Build Release APK
-        run: .\gradlew.bat assembleRelease
+        run: ./gradlew assembleRelease
 
       - name: Upload APK to Release
         uses: softprops/action-gh-release@v1
