@@ -7,11 +7,21 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import com.google.firebase.FirebaseApp
+import android.util.Log
+
 class QrisApp : Application() {
     val database by lazy { AppDatabase.getDatabase(this) }
 
     override fun onCreate() {
         super.onCreate()
+        
+        try {
+            FirebaseApp.initializeApp(this)
+            Log.d("QrisApp", "Firebase initialized successfully")
+        } catch (e: Exception) {
+            Log.e("QrisApp", "Failed to initialize Firebase", e)
+        }
         
         // Populate default rules if database is empty
         CoroutineScope(Dispatchers.IO).launch {

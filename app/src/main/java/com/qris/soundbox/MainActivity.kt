@@ -246,7 +246,7 @@ fun QrisAppUI(factory: QrisViewModelFactory, onSpeak: (String) -> Unit, ttsReady
     var appUpdater by remember { mutableStateOf<com.qris.soundbox.updater.AppUpdater?>(null) }
     
     LaunchedEffect(Unit) {
-        val updater = com.qris.soundbox.updater.AppUpdater(context, "ajiputra001", "Voice-Notf")
+        val updater = com.qris.soundbox.updater.AppUpdater(context, "ajiputra001", "AJIPUTRA-PROJECT")
         appUpdater = updater
         val release = updater.checkForUpdates()
         if (release != null) {
@@ -511,7 +511,7 @@ fun DashboardScreen(viewModel: QrisViewModel, isPermissionGranted: Boolean, cont
             }
         }
 
-        // Today Earnings Card
+        // Today Earnings Card (Glassmorphism)
         item {
             val totalEarnings = formatCurrency(todaySales)
             val successfulTxCount = transactions.filter { it.isParsedSuccessfully && it.timestamp >= getStartOfDay() }.size
@@ -520,37 +520,97 @@ fun DashboardScreen(viewModel: QrisViewModel, isPermissionGranted: Boolean, cont
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(AccentPurple, AccentPink)
+                        brush = Brush.linearGradient(
+                            colors = listOf(AccentPurple.copy(alpha = 0.8f), AccentPink.copy(alpha = 0.8f))
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(20.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(20.dp)
                     )
                     .padding(24.dp)
             ) {
                 Column {
-                    Text("Total QRIS Masuk Hari Ini", color = Color(0xCCF9FAFB), fontSize = 14.sp)
+                    Text("Total Omzet Hari Ini", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         totalEarnings,
                         color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black.copy(alpha = 0.3f),
+                                offset = androidx.compose.ui.geometry.Offset(0f, 4f),
+                                blurRadius = 8f
+                            )
+                        )
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Icon(
                             imageVector = Icons.Default.TrendingUp,
                             contentDescription = "Trending",
                             tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             "$successfulTxCount Pembayaran Sukses",
                             color = Color.White,
                             fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold
                         )
+                    }
+                }
+            }
+        }
+
+        // Smart Summary Assistant
+        item {
+            val successfulTxCount = transactions.filter { it.isParsedSuccessfully && it.timestamp >= getStartOfDay() }.size
+            val summaryText = when {
+                successfulTxCount == 0 -> "Belum ada penjualan hari ini. Tetap semangat dan pantang menyerah ya! 💪"
+                successfulTxCount in 1..5 -> "Mantap! Sudah ada beberapa transaksi masuk. Lanjutkan kerja kerasnya! 🔥"
+                successfulTxCount in 6..15 -> "Wah, lumayan ramai hari ini! Penjualan sedang on-fire! 🚀"
+                else -> "Luar biasa! Hari ini sangat sibuk. Pastikan stok barang tetap aman ya! 🌟"
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(AccentPurple.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "AI Assistant",
+                            tint = AccentPurple,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text("Asisten Pintar", fontWeight = FontWeight.Bold, color = TextWhite, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(summaryText, color = TextGray, fontSize = 12.sp, lineHeight = 16.sp)
                     }
                 }
             }
