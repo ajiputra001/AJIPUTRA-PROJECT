@@ -160,9 +160,10 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
                         val parsedAmount = parseAmount(rawAmount)
                         
                         if (parsedAmount > 0.0) {
-                            val payerName = extractPayerNameSmart(fullContentText)
-                            val speakText = if (payerName != "Pelanggan") {
-                                "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah dari $payerName"
+                            val payerName = cleanExtractedPayerName(extractPayerNameSmart(fullContentText))
+                            val cleanPayerSpeech = cleanPayerNameForSpeech(payerName)
+                            val speakText = if (cleanPayerSpeech.lowercase() != "pelanggan") {
+                                "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah dari $cleanPayerSpeech"
                             } else {
                                 "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah"
                             }
@@ -213,13 +214,14 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
                             val payerPattern = Pattern.compile(rule.regexPayer)
                             val payerMatcher = payerPattern.matcher(fullContentText)
                             if (payerMatcher.find()) {
-                                payerName = payerMatcher.group(1)?.trim() ?: "Pelanggan"
+                                payerName = cleanExtractedPayerName(payerMatcher.group(1)?.trim() ?: "Pelanggan")
                             }
                         }
 
+                        val cleanPayerSpeech = cleanPayerNameForSpeech(payerName)
                         val speakText = rule.speakTemplate
                             .replace("{amount}", formatNominalToSpeech(parsedAmount))
-                            .replace("{name}", payerName)
+                            .replace("{name}", cleanPayerSpeech)
 
                         speakOut(speakText)
 
@@ -292,11 +294,58 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         return isFinancialOrBankApp(packageName)
     }
 
+    private fun cleanExtractedPayerName(name: String): String {
+        var cleaned = name.trim()
+        
+        // Match starting from any payment status/preposition keywords (including cut-off versions)
+        val patterns = listOf(
+            "(?i)\\bberhasil\\b.*",
+            "(?i)\\bberhas\\w*\\b.*",
+            "(?i)\\bditerima\\b.*",
+            "(?i)\\bditerim\\w*\\b.*",
+            "(?i)\\bsebesar\\b.*",
+            "(?i)\\bsebes\\w*\\b.*",
+            "(?i)\\bke\\b.*",
+            "(?i)\\buntuk\\b.*",
+            "(?i)\\brupiah\\b.*"
+        )
+        
+        for (pattern in patterns) {
+            cleaned = cleaned.replace(pattern.toRegex(), "")
+        }
+        
+        return cleaned.trim()
+    }
+
+    private fun cleanPayerNameForSpeech(name: String): String {
+        var cleaned = name
+            .replace("(?i)\\bpt\\b".toRegex(), "")
+            .replace("(?i)\\btbk\\b".toRegex(), "")
+            .replace("\\s+".toRegex(), " ")
+            .trim()
+            
+        // Convert to title case
+        cleaned = cleaned.split(" ")
+            .filter { it.isNotEmpty() }
+            .joinToString(" ") { word ->
+                word.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            }
+
+        // Keep common acronyms readable (spaced out)
+        cleaned = cleaned
+            .replace("(?i)\\bbca\\b".toRegex(), "B C A")
+            .replace("(?i)\\bbni\\b".toRegex(), "B N I")
+            .replace("(?i)\\bbri\\b".toRegex(), "B R I")
+            .replace("(?i)\\bbsi\\b".toRegex(), "B S I")
+            
+        return cleaned.trim()
+    }
+
     private fun extractPayerNameSmart(text: String): String {
         val patterns = listOf(
-            Pattern.compile("(?i)dari\\s+([A-Za-z0-9\\s.]{3,30})"),
-            Pattern.compile("(?i)dr\\s+([A-Za-z0-9\\s.]{3,30})"),
-            Pattern.compile("(?i)from\\s+([A-Za-z0-9\\s.]{3,30})")
+            Pattern.compile("(?i)dari\\s+(.+?)(?=\\s+(?:berhasil|sebesar|ke|diterima|rupiah|rp|\\d)|$)"),
+            Pattern.compile("(?i)dr\\s+(.+?)(?=\\s+(?:berhasil|sebesar|ke|diterima|rupiah|rp|\\d)|$)"),
+            Pattern.compile("(?i)from\\s+(.+?)(?=\\s+(?:berhasil|sebesar|ke|diterima|rupiah|rp|\\d)|$)")
         )
         for (pattern in patterns) {
             val matcher = pattern.matcher(text)
