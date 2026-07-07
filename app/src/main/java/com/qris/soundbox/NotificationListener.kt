@@ -129,37 +129,59 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
                                        lowerText.contains("berhasil") || 
                                        lowerText.contains("terima") ||
                                        lowerText.contains("bayar") ||
-                                       isTargetApp(packageName)
+                                       lowerText.contains("kredit") ||
+                                       lowerText.contains("kirim") ||
+                                       lowerText.contains("dana") ||
+                                       lowerText.contains("uang") ||
+                                       lowerText.contains("nominal") ||
+                                       lowerText.contains("transaksi") ||
+                                       lowerText.contains("payment") ||
+                                       lowerText.contains("incoming") ||
+                                       lowerText.contains("received") ||
+                                       lowerText.contains("success") ||
+                                       lowerText.contains("successful") ||
+                                       lowerText.contains("credit") ||
+                                       lowerText.contains("deposit") ||
+                                       lowerText.contains("inward") ||
+                                       lowerText.contains("sent") ||
+                                       lowerText.contains("amount") ||
+                                       isFinancialOrBankApp(packageName)
 
                 if (isPaymentKeyword) {
-                    val smartAmountPattern = Pattern.compile("(?i)rp\\s*([\\d\\.,]+)")
+                    val smartAmountPattern = Pattern.compile("(?i)(?:rp|idr)\\.?\\s*([\\d\\.,]+)")
                     val smartMatcher = smartAmountPattern.matcher(fullContentText)
                     
                     if (smartMatcher.find()) {
                         val rawAmount = smartMatcher.group(1) ?: "0"
                         val parsedAmount = parseAmount(rawAmount)
                         
-                        val payerName = "Pelanggan (Auto)"
-                        val speakText = "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah"
-                        
-                        speakOut(speakText)
+                        if (parsedAmount > 0.0) {
+                            val payerName = extractPayerNameSmart(fullContentText)
+                            val speakText = if (payerName != "Pelanggan") {
+                                "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah dari $payerName"
+                            } else {
+                                "Pembayaran masuk sebesar ${formatNominalToSpeech(parsedAmount)} rupiah"
+                            }
+                            
+                            speakOut(speakText)
 
-                        val tx = saveTransaction(
-                            appName = getAppNameFromPackage(packageName),
-                            packageName = packageName,
-                            amount = parsedAmount,
-                            payerName = payerName,
-                            rawText = rawMessage,
-                            isParsed = true
-                        )
+                            val tx = saveTransaction(
+                                appName = getAppNameFromPackage(packageName),
+                                packageName = packageName,
+                                amount = parsedAmount,
+                                payerName = payerName,
+                                rawText = rawMessage,
+                                isParsed = true
+                            )
 
-                        val prefs = getSharedPreferences("qris_prefs", android.content.Context.MODE_PRIVATE)
-                        val webhookUrl = prefs.getString("webhook_url", "") ?: ""
-                        if (webhookUrl.isNotEmpty()) {
-                            sendWebhook(webhookUrl, tx)
+                            val prefs = getSharedPreferences("qris_prefs", android.content.Context.MODE_PRIVATE)
+                            val webhookUrl = prefs.getString("webhook_url", "") ?: ""
+                            if (webhookUrl.isNotEmpty()) {
+                                sendWebhook(webhookUrl, tx)
+                            }
+                            Log.d(TAG, "Smart Detection matched: $packageName, Amount: $parsedAmount, Payer: $payerName")
                         }
-                        Log.d(TAG, "Smart Detection matched: $packageName, Amount: $parsedAmount")
-                    } else if (isTargetApp(packageName)) {
+                    } else if (isFinancialOrBankApp(packageName)) {
                         saveTransaction(
                             appName = getAppNameFromPackage(packageName),
                             packageName = packageName,
@@ -222,9 +244,36 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         }
     }
 
+    private fun isFinancialOrBankApp(packageName: String): Boolean {
+        val financialKeywords = listOf(
+            "bank", "wallet", "pay", "merchant", "gobiz", "shopee", 
+            "dana", "ovo", "gopay", "grab", "tokopedia", "lazada", 
+            "bukalapak", "blu", "jago", "brimo", "livin", "bca", "bni", "bri"
+        )
+        val lowerPkg = packageName.lowercase()
+        return financialKeywords.any { lowerPkg.contains(it) }
+    }
+
     private fun isTargetApp(packageName: String): Boolean {
-        val targets = listOf("com.gojek.gobiz", "com.shopee.partner", "com.bca.merchant", "id.dana.bisnis", "xin.mian.ovo")
-        return targets.any { packageName.contains(it) }
+        return isFinancialOrBankApp(packageName)
+    }
+
+    private fun extractPayerNameSmart(text: String): String {
+        val patterns = listOf(
+            Pattern.compile("(?i)dari\\s+([A-Za-z0-9\\s.]{3,30})"),
+            Pattern.compile("(?i)dr\\s+([A-Za-z0-9\\s.]{3,30})"),
+            Pattern.compile("(?i)from\\s+([A-Za-z0-9\\s.]{3,30})")
+        )
+        for (pattern in patterns) {
+            val matcher = pattern.matcher(text)
+            if (matcher.find()) {
+                val name = matcher.group(1)?.trim() ?: ""
+                if (name.isNotEmpty()) {
+                    return name.split("\n")[0].split("|")[0].trim()
+                }
+            }
+        }
+        return "Pelanggan"
     }
 
     private fun getAppNameFromPackage(packageName: String): String {
@@ -233,12 +282,21 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             val info = pm.getApplicationInfo(packageName, android.content.pm.PackageManager.GET_META_DATA)
             pm.getApplicationLabel(info).toString()
         } catch (e: Exception) {
+            val lower = packageName.lowercase()
             when {
-                packageName.contains("gobiz") -> "GoBiz"
-                packageName.contains("shopee") -> "Shopee Partner"
-                packageName.contains("bca") -> "BCA Merchant"
-                packageName.contains("dana") -> "DANA Bisnis"
-                packageName.contains("ovo") -> "OVO Merchant"
+                lower.contains("gobiz") -> "GoBiz"
+                lower.contains("shopee") -> "Shopee"
+                lower.contains("bca") -> "BCA"
+                lower.contains("dana") -> "DANA"
+                lower.contains("ovo") -> "OVO"
+                lower.contains("mandiri") -> "Mandiri"
+                lower.contains("brimo") || lower.contains("bri") -> "BRI"
+                lower.contains("bni") -> "BNI"
+                lower.contains("seabank") -> "SeaBank"
+                lower.contains("jago") -> "Bank Jago"
+                lower.contains("allobank") -> "Allo Bank"
+                lower.contains("bcadigital") || lower.contains("blu") -> "blu"
+                lower.contains("neobank") || lower.contains("bankneo") -> "Neobank"
                 else -> packageName
             }
         }
@@ -246,27 +304,39 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
     private fun parseAmount(rawAmount: String): Double {
         var cleaned = rawAmount.replace("Rp", "", ignoreCase = true)
+            .replace("IDR", "", ignoreCase = true)
             .replace(" ", "")
             .replace("\u00A0", "")
-        
-        if (cleaned.contains(",") && cleaned.contains(".")) {
-            cleaned = cleaned.replace(".", "").replace(",", ".")
-        } else if (cleaned.contains(",")) {
+            .trim()
+
+        if (cleaned.isEmpty()) return 0.0
+
+        val lastDot = cleaned.lastIndexOf('.')
+        val lastComma = cleaned.lastIndexOf(',')
+
+        if (lastDot != -1 && lastComma != -1) {
+            if (lastDot > lastComma) {
+                cleaned = cleaned.replace(",", "")
+            } else {
+                cleaned = cleaned.replace(".", "").replace(",", ".")
+            }
+        } else if (lastComma != -1) {
             val parts = cleaned.split(",")
             if (parts.size == 2 && parts[1].length == 3) {
                 cleaned = cleaned.replace(",", "")
             } else {
                 cleaned = cleaned.replace(",", ".")
             }
-        } else if (cleaned.contains(".")) {
+        } else if (lastDot != -1) {
             val parts = cleaned.split(".")
-            if (parts.size == 2 && parts[1].length == 3) {
+            val dotCount = cleaned.count { it == '.' }
+            if (dotCount > 1) {
                 cleaned = cleaned.replace(".", "")
-            } else {
+            } else if (parts.size == 2 && parts[1].length == 3) {
                 cleaned = cleaned.replace(".", "")
             }
         }
-        
+
         return cleaned.toDoubleOrNull() ?: 0.0
     }
 

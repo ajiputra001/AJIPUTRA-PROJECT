@@ -1135,26 +1135,39 @@ fun SandboxScreen(viewModel: QrisViewModel, onSpeak: (String) -> Unit) {
 
 fun cleanAmount(rawAmount: String): Double {
     var cleaned = rawAmount.replace("Rp", "", ignoreCase = true)
+        .replace("IDR", "", ignoreCase = true)
         .replace(" ", "")
         .replace("\u00A0", "")
-    
-    if (cleaned.contains(",") && cleaned.contains(".")) {
-        cleaned = cleaned.replace(".", "").replace(",", ".")
-    } else if (cleaned.contains(",")) {
+        .trim()
+
+    if (cleaned.isEmpty()) return 0.0
+
+    val lastDot = cleaned.lastIndexOf('.')
+    val lastComma = cleaned.lastIndexOf(',')
+
+    if (lastDot != -1 && lastComma != -1) {
+        if (lastDot > lastComma) {
+            cleaned = cleaned.replace(",", "")
+        } else {
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        }
+    } else if (lastComma != -1) {
         val parts = cleaned.split(",")
         if (parts.size == 2 && parts[1].length == 3) {
             cleaned = cleaned.replace(",", "")
         } else {
             cleaned = cleaned.replace(",", ".")
         }
-    } else if (cleaned.contains(".")) {
+    } else if (lastDot != -1) {
         val parts = cleaned.split(".")
-        if (parts.size == 2 && parts[1].length == 3) {
+        val dotCount = cleaned.count { it == '.' }
+        if (dotCount > 1) {
             cleaned = cleaned.replace(".", "")
-        } else {
+        } else if (parts.size == 2 && parts[1].length == 3) {
             cleaned = cleaned.replace(".", "")
         }
     }
+
     return cleaned.toDoubleOrNull() ?: 0.0
 }
 

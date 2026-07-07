@@ -26,6 +26,9 @@ interface RuleDao {
     @Query("SELECT * FROM rules")
     fun getAllRulesFlow(): Flow<List<Rule>>
 
+    @Query("SELECT * FROM rules")
+    suspend fun getAllRulesList(): List<Rule>
+
     @Query("SELECT * FROM rules WHERE isActive = 1")
     suspend fun getActiveRules(): List<Rule>
 

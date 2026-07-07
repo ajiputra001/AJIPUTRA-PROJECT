@@ -30,7 +30,7 @@ set APP_BASE_NAME=%~n0
 set APP_HOME=%DIRNAME%
 
 @rem Resolve any "." and ".." in APP_HOME to make it shorter.
-for %%i in ("%APP_HOME%") do set APP_HOME=%%~f1
+for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
 @rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
 set DEFAULT_JVM_OPTS="-XX:MaxMetaspaceSize=256m"
@@ -75,7 +75,9 @@ set CLASSPATH=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
 
 :end
 @rem Local variables cleanup
-if "%OS%"=="Windows_NT" [rem] goto mainEnd
+if "%OS%"=="Windows_NT" endlocal
+
+goto mainEnd
 
 :fail
 rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of
