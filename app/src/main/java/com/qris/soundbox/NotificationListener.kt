@@ -119,6 +119,10 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         Log.d(TAG, "Notification received from: $packageName, Raw: $rawMessage")
 
         serviceScope.launch {
+            if (isOutgoingTransaction(fullContentText)) {
+                Log.d(TAG, "Ignoring outgoing transaction: $fullContentText")
+                return@launch
+            }
             val rules = db.ruleDao().getRulesForPackage(packageName)
             if (rules.isEmpty()) {
                 // Smart Detection Logic
@@ -242,6 +246,36 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
                 }
             }
         }
+    }
+
+    private fun isOutgoingTransaction(text: String): Boolean {
+        val lowerText = text.lowercase()
+        
+        val outgoingPhrases = listOf(
+            "kirim ke", "transfer ke", "pembayaran ke", "kirim uang ke", 
+            "transfer saldo ke", "bayar merchant", "pembelian", "debit", 
+            "keluar sebesar", "sent to", "paid to", "payment to", "transfer to", 
+            "outgoing", "debit transaction", "cash withdrawal", "tarik tunai", 
+            "ke bank", "ke dana", "ke ovo", "ke gopay", "ke linkaja", "ke shopeepay", 
+            "ke no.hp", "ke nomor", "ke rekening", "belanja di", "bayar di", "transaksi keluar"
+        )
+        
+        if (outgoingPhrases.any { lowerText.contains(it) }) {
+            return true
+        }
+
+        if (lowerText.contains(" ke ") || lowerText.contains(" to ")) {
+            if (!lowerText.contains("masuk ke") && !lowerText.contains("diterima ke") && !lowerText.contains("ditambahkan ke")) {
+                return true
+            }
+        }
+        
+        if ((lowerText.contains("kirim") || lowerText.contains("bayar") || lowerText.contains("send") || lowerText.contains("pay")) &&
+            !lowerText.contains("terima") && !lowerText.contains("masuk") && !lowerText.contains("received") && !lowerText.contains("incoming")) {
+            return true
+        }
+
+        return false
     }
 
     private fun isFinancialOrBankApp(packageName: String): Boolean {

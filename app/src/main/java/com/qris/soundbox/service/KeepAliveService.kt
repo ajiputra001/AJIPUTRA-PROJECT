@@ -37,8 +37,40 @@ class KeepAliveService : Service() {
             startForeground(101, notification)
         }
         
+        // Reconnect Notification Listener Service to keep it bound by the system
+        try {
+            com.qris.soundbox.reconnectNotificationService(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
         // Memastikan sistem selalu mencoba menghidupkan kembali service ini jika dimatikan paksa
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        
+        // Force restart this service 1 second after user swipes the app away
+        val restartServiceIntent = Intent(applicationContext, this.javaClass).apply {
+            setPackage(packageName)
+        }
+        val restartServicePendingIntent = android.app.PendingIntent.getService(
+            applicationContext, 
+            1, 
+            restartServiceIntent, 
+            android.app.PendingIntent.FLAG_ONE_SHOT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmService = applicationContext.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        try {
+            alarmService.set(
+                android.app.AlarmManager.RTC_WAKEUP, 
+                System.currentTimeMillis() + 1000, 
+                restartServicePendingIntent
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun createNotificationChannel() {
