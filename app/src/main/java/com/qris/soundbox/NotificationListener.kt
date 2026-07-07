@@ -375,11 +375,12 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     }
 
     private fun formatNominalToSpeech(amount: Double): String {
-        val longVal = amount.toLong()
-        return if (longVal.toDouble() == amount) {
-            longVal.toString()
-        } else {
-            amount.toString()
+        return try {
+            val longVal = amount.toLong()
+            val formatter = java.text.NumberFormat.getNumberInstance(java.util.Locale("id", "ID"))
+            formatter.format(longVal)
+        } catch (e: Exception) {
+            amount.toLong().toString()
         }
     }
 

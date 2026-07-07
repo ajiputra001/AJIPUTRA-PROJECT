@@ -1081,8 +1081,15 @@ fun SandboxScreen(viewModel: QrisViewModel, onSpeak: (String) -> Unit) {
                                     }
 
                                     // Replace templates
+                                    val formattedAmountStr = try {
+                                        val formatter = java.text.NumberFormat.getNumberInstance(java.util.Locale("id", "ID"))
+                                        formatter.format(parsedAmount.toLong())
+                                    } catch (e: Exception) {
+                                        parsedAmount.toLong().toString()
+                                    }
+                                    
                                     val speakResult = activeRule.speakTemplate
-                                        .replace("{amount}", parsedAmount.toLong().toString())
+                                        .replace("{amount}", formattedAmountStr)
                                         .replace("{name}", payerName)
 
                                     testResultText = """

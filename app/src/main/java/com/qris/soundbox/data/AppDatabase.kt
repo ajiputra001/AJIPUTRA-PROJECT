@@ -60,7 +60,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "qris_soundbox_db"
-                ).build()
+                )
+                .enableMultiInstanceInvalidation()
+                .build()
                 INSTANCE = instance
                 instance
             }
